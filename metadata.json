@@ -1,0 +1,6 @@
+{
+  "name": "Gestor de Altares",
+  "description": "Gestor de puestos de avanzada y altares de alianza con CRUD, filtros, temporizadores de protección y estadísticas.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
