@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { useI18n } from "./i18n/I18nContext";
 import { Altar, AltarEvent, AltarActionType } from "./types";
 import { INITIAL_ALTAR_PRESETS, calculateExpiration, formatRemainingTime } from "./utils/parser";
 import StatsDashboard from "./components/StatsDashboard";
@@ -19,11 +20,13 @@ import {
   RotateCcw,
   Clock,
   ExternalLink,
+  Languages,
   ShieldAlert,
   ShieldAlert as AlertTriangle
 } from "lucide-react";
 
 export default function App() {
+  const { t, language, toggleLanguage } = useI18n();
   // 1. Core State
   const [altars, setAltars] = useState<Altar[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -43,7 +46,7 @@ export default function App() {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   // Helper for automated Event Logging
-  const logEvent = (actionType: AltarActionType, description: string, altarName?: string, altarId?: string) => {
+  const logEvent = useCallback((actionType: AltarActionType, description: string, altarName?: string, altarId?: string) => {
     const newEvent: AltarEvent = {
       id: `event_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       actionType,
@@ -57,7 +60,7 @@ export default function App() {
       localStorage.setItem("alliance_altar_events", JSON.stringify(updated));
       return updated;
     });
-  };
+  }, []);
 
   const handleClearEvents = () => {
     setEvents([]);
@@ -90,10 +93,10 @@ export default function App() {
   }, []);
 
   // Save changes
-  const saveAltarsToStorage = (newAltars: Altar[]) => {
+  const saveAltarsToStorage = useCallback((newAltars: Altar[]) => {
     setAltars(newAltars);
     localStorage.setItem("alliance_altars", JSON.stringify(newAltars));
-  };
+  }, []);
 
   // Tick timer every second for countdown representation
   useEffect(() => {
@@ -102,6 +105,39 @@ export default function App() {
     }, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // Auto-expiration background effect: tracks and transitions expired shields to vulnerable automatically with audit trail logging
+  useEffect(() => {
+    const checkExpirations = () => {
+      const now = new Date();
+      let changed = false;
+      const updatedAltars = altars.map(altar => {
+        if (altar.protectionExpiresAt && new Date(altar.protectionExpiresAt) <= now) {
+          changed = true;
+          logEvent(
+            "UPDATE",
+            `El escudo de paz del altar militar '${altar.name}' ha expirado. El puesto se encuentra en estado VULNERABLE de forma automática.`,
+            altar.name,
+            altar.id
+          );
+          return {
+            ...altar,
+            protectionTimeInput: "",
+            protectionExpiresAt: null,
+            updatedAt: now.toISOString()
+          };
+        }
+        return altar;
+      });
+
+      if (changed) {
+        saveAltarsToStorage(updatedAltars);
+      }
+    };
+
+    const interval = setInterval(checkExpirations, 1000);
+    return () => clearInterval(interval);
+  }, [altars, logEvent, saveAltarsToStorage]);
 
   // 3. CRUD actions
   const handleSaveAltar = (formData: Omit<Altar, "id" | "createdAt" | "updatedAt"> & { id?: string }) => {
@@ -340,14 +376,13 @@ export default function App() {
   });
 
   return (
-    <div className="min-h-screen bg-[#07080d] text-zinc-100 font-sans selection:bg-purple-500 selection:text-white pb-16 antialiased relative overflow-hidden">
-      {/* Decorative Tactical Ambient Glows */}
-      <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-sky-500/3 rounded-full blur-[160px] pointer-events-none select-none z-0" />
-      <div className="absolute top-1/4 right-10 w-[500px] h-[500px] bg-purple-500/3 rounded-full blur-[140px] pointer-events-none select-none z-0" />
-      <div className="absolute bottom-10 left-10 w-[800px] h-[800px] bg-emerald-500/3 rounded-full blur-[200px] pointer-events-none select-none z-0" />
+    <div className="min-h-screen text-zinc-100 font-sans selection:bg-indigo-500 selection:text-white pb-16 antialiased relative overflow-hidden bg-[#09090b]">
+      {/* Decorative Tactical Ambient Glows - simplified for a cleaner look */}
+      <div className="absolute top-0 left-1/4 w-[800px] h-[800px] bg-indigo-500/5 rounded-full blur-[200px] pointer-events-none select-none z-0" />
+      <div className="absolute bottom-10 right-10 w-[600px] h-[600px] bg-emerald-500/5 rounded-full blur-[160px] pointer-events-none select-none z-0" />
 
       {/* Top Combat Header info */}
-      <header className="border-b border-zinc-800/50 bg-[#07080c]/70 backdrop-blur-md sticky top-0 z-40">
+      <header className="border-b border-white/5 bg-zinc-950/40 backdrop-blur-xl sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           
           <div className="flex items-center gap-3">
@@ -356,10 +391,10 @@ export default function App() {
             </div>
             <div>
               <h1 className="text-xs md:text-sm font-extrabold text-white tracking-widest uppercase font-mono bg-gradient-to-r from-zinc-100 via-zinc-200 to-zinc-400 bg-clip-text text-transparent">
-                SISTEMA REY DE ALTARES
+                {t('appTitle')}
               </h1>
               <p className="text-[9px] text-zinc-400 font-mono tracking-widest uppercase">
-                PANEL DE CONTROL TÁCTICO DE FRONTERAS
+                {t('activityLog.desc')}
               </p>
             </div>
           </div>
@@ -376,12 +411,19 @@ export default function App() {
 
             {/* Core Preset Restorer */}
             <button
-              onClick={handleResetToPresets}
+              onClick={toggleLanguage}
               className="text-[10px] font-bold text-zinc-400 hover:text-white bg-[#0e0f14] hover:bg-zinc-900 px-3 py-1.5 rounded-xl border border-zinc-800/80 transition-all cursor-pointer flex items-center gap-1.5 font-mono uppercase shadow-sm active:scale-95"
-              title="Restablecer base de datos inicial de altares"
+              title="Cambiar idioma / Toggle language"
             >
-              <RotateCcw className="w-3 h-3 text-amber-500" /> Restablecer
+              <Languages className="w-3 h-3 text-purple-400" /> {language.toUpperCase()}
             </button>
+              <button
+                onClick={handleResetToPresets}
+                className="text-[10px] font-bold text-zinc-400 hover:text-white bg-[#0e0f14] hover:bg-zinc-900 px-3 py-1.5 rounded-xl border border-zinc-800/80 transition-all cursor-pointer flex items-center gap-1.5 font-mono uppercase shadow-sm active:scale-95"
+                title={t('common.reset')}
+              >
+                <RotateCcw className="w-3 h-3 text-amber-500" /> {t('common.reset')}
+              </button>
           </div>
         </div>
       </header>
@@ -392,8 +434,8 @@ export default function App() {
         {altars.length === 0 && (
           <div className="bg-yellow-950/25 border border-yellow-900/30 p-4 rounded-2xl text-yellow-300 text-xs mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <span className="font-bold block text-sm mb-1">¡No hay altares registrados!</span>
-              <span>Comienza agregando un altar individualmente o importa tu lista directamente de WhatsApp con el Importador Rápido.</span>
+              <span className="font-bold block text-sm mb-1">{t('common.noAltars')}</span>
+              <span>{t('common.getStarted')}</span>
             </div>
             <div className="flex gap-2">
               <button
@@ -403,13 +445,13 @@ export default function App() {
                 }}
                 className="bg-yellow-500 hover:bg-yellow-400 text-slate-950 px-3 py-1.5 rounded-lg font-mono text-[10px] font-bold transition-all cursor-pointer"
               >
-                + AGREGAR MANUALLY
+                + {t('newAltar')}
               </button>
               <button
                 onClick={() => setIsImportOpen(true)}
                 className="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg font-mono text-[10px] font-bold transition-all cursor-pointer"
               >
-                📥 DE CHAT RAPID
+                📥 {t('importFromChat')}
               </button>
             </div>
           </div>

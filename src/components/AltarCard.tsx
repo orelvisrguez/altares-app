@@ -77,7 +77,7 @@ export default function AltarCard({
   }
 
   return (
-    <div className={`relative bg-slate-900/40 border ${cardBorderClass} rounded-2xl pl-6 pr-5 py-5 flex flex-col justify-between shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl backdrop-blur-sm group overflow-hidden`}>
+    <div className={`relative premium-glass-panel border ${cardBorderClass} rounded-2xl pl-6 pr-5 py-5 flex flex-col justify-between group overflow-hidden`}>
       {/* Alert Glow border overlays */}
       {isCriticalThreat && (
         <div className="absolute inset-0 rounded-2xl border-2 border-red-500/60 pointer-events-none animate-pulse shadow-[inset_0_0_12px_rgba(239,68,68,0.2)] z-10" />

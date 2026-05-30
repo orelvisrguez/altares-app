@@ -1,4 +1,5 @@
 import React from "react";
+import { useI18n } from "../i18n/I18nContext";
 import { Altar } from "../types";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell } from "recharts";
 import { Shield, ShieldAlert, Award, Castle, CheckCircle2 } from "lucide-react";
@@ -21,6 +22,7 @@ const ALLIANCE_COLORS: Record<string, string> = {
 };
 
 export default function StatsDashboard({ altars, onSelectAlliance, selectedAlliance }: StatsDashboardProps) {
+  const { t } = useI18n();
   const now = new Date();
 
   // 1. Calculate General Numbers
@@ -54,31 +56,55 @@ export default function StatsDashboard({ altars, onSelectAlliance, selectedAllia
     };
   }).sort((a, b) => b.cantidad - a.cantidad);
 
+  // 3. Histogram of protection time intervals
+  const histogramData = [
+    { label: "0-6h", count: 0 },
+    { label: "6-12h", count: 0 },
+    { label: "12-18h", count: 0 },
+    { label: "18-24h", count: 0 },
+    { label: ">24h", count: 0 },
+  ];
+
+  altars.forEach(a => {
+    if (!a.protectionExpiresAt) return;
+    const expiry = new Date(a.protectionExpiresAt);
+    const remainingMs = expiry.getTime() - now.getTime();
+    if (remainingMs <= 0) return;
+    
+    const remainingHours = remainingMs / (1000 * 60 * 60);
+
+    if (remainingHours <= 6) histogramData[0].count++;
+    else if (remainingHours <= 12) histogramData[1].count++;
+    else if (remainingHours <= 18) histogramData[2].count++;
+    else if (remainingHours <= 24) histogramData[3].count++;
+    else histogramData[4].count++;
+  });
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
       {/* Col 1: Counters (Bento box style with subtle glow and premium borders) */}
-      <div className="bg-[#0b0c11]/80 border border-zinc-800/80 rounded-2xl p-5 flex flex-col justify-between shadow-xl backdrop-blur-sm relative overflow-hidden group premium-glass-panel">
-        <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-purple-500 to-indigo-500 opacity-60"></div>
+      <div className="premium-glass-panel rounded-2xl p-5 flex flex-col justify-between relative overflow-hidden group">
+        <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-emerald-500 to-emerald-700 opacity-60"></div>
         <div>
           <h3 className="text-xs font-bold text-zinc-350 uppercase tracking-widest mb-4 flex items-center gap-2 font-mono">
-            <Castle className="w-4 h-4 text-purple-400 group-hover:rotate-12 transition-transform duration-300" /> RESUMEN DE CONTROL
+            <Castle className="w-4 h-4 text-purple-400 group-hover:rotate-12 transition-transform duration-300" /> {t('stats.controlSummary')}
           </h3>
           <div className="grid grid-cols-3 gap-3 mb-4">
             <div className="bg-[#050609]/90 p-3.5 rounded-xl border border-zinc-800/80 text-center hover:border-zinc-700 transition-colors">
               <span className="block text-2xl font-extrabold text-white font-mono tracking-tight">{totalCount}</span>
-              <span className="text-[10px] text-zinc-400 font-mono">Total Puestos</span>
+              <span className="text-[10px] text-zinc-400 font-mono">{t('stats.totalPosts')}</span>
             </div>
             <div className="bg-emerald-950/20 p-3.5 rounded-xl border border-emerald-900/35 text-center hover:bg-emerald-950/30 transition-all">
               <span className="block text-2xl font-extrabold text-emerald-400 font-mono tracking-tight flex items-center justify-center gap-0.5 animate-pulse">
                 {protectedCount}
               </span>
-              <span className="text-[10px] text-emerald-300/90 font-mono">Protegidos</span>
+              <span className="text-[10px] text-emerald-300/90 font-mono">{t('stats.protected')}</span>
             </div>
             <div className="bg-rose-950/20 p-3.5 rounded-xl border border-rose-900/35 text-center hover:bg-rose-950/30 transition-all">
               <span className="block text-2xl font-extrabold text-rose-400 font-mono tracking-tight">
                 {vulnerableCount}
               </span>
-              <span className="text-[10px] text-rose-300/90 font-mono">Vulnerables</span>
+              <span className="text-[10px] text-rose-300/90 font-mono">{t('stats.vulnerable')}</span>
             </div>
           </div>
         </div>
@@ -86,18 +112,18 @@ export default function StatsDashboard({ altars, onSelectAlliance, selectedAllia
         <div className="pt-3.5 border-t border-zinc-800/60 text-[11px] space-y-2 mt-2 font-mono">
           <div className="flex items-start gap-2.5">
             <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
-            <span className="text-zinc-300 leading-snug">Altares seguros bajo protección temporal activa. No hay riesgo de invasión inmediata.</span>
+            <span className="text-zinc-300 leading-snug">{t('stats.secureDesc')}</span>
           </div>
           <div className="flex items-start gap-2.5">
             <ShieldAlert className="w-4 h-4 text-rose-400 mt-0.5 shrink-0" />
-            <span className="text-zinc-300 leading-snug">Altares vulnerables sin escudo de paz. Vigilancia crítica de fronteras obligatoria.</span>
+            <span className="text-zinc-300 leading-snug">{t('stats.vulnerableDesc')}</span>
           </div>
         </div>
       </div>
 
       {/* Col 2: Recharts Bar Chart of Occupancy with beautiful styling */}
-      <div className="bg-[#0b0c11]/80 border border-zinc-800/80 rounded-2xl p-5 shadow-xl backdrop-blur-sm flex flex-col justify-between relative overflow-hidden group premium-glass-panel">
-        <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-purple-500 to-indigo-500 opacity-60"></div>
+      <div className="premium-glass-panel rounded-2xl p-5 flex flex-col justify-between relative overflow-hidden group">
+        <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-blue-500 to-blue-700 opacity-60"></div>
         <div>
           <h3 className="text-xs font-bold text-zinc-350 uppercase tracking-widest mb-1 flex items-center gap-2 font-mono">
             <Award className="w-4 h-4 text-purple-400 group-hover:scale-110 transition-transform duration-300" /> ALTARES POR ALIANZA
@@ -185,8 +211,8 @@ export default function StatsDashboard({ altars, onSelectAlliance, selectedAllia
       </div>
 
       {/* Col 3: Active Buffs Breakdown with Progress Bars */}
-      <div className="bg-[#0b0c11]/80 border border-zinc-800/80 rounded-2xl p-5 shadow-xl backdrop-blur-sm flex flex-col justify-between max-h-[224px] overflow-y-auto custom-scrollbar relative overflow-hidden group premium-glass-panel">
-        <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-purple-500 to-indigo-500 opacity-60"></div>
+      <div className="premium-glass-panel rounded-2xl p-5 flex flex-col justify-between max-h-[224px] overflow-y-auto custom-scrollbar relative overflow-hidden group">
+        <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-indigo-500 to-indigo-700 opacity-60"></div>
         <h3 className="text-xs font-bold text-zinc-350 uppercase tracking-widest mb-3 flex items-center gap-2 font-mono border-b border-zinc-800/50 pb-2">
           <CheckCircle2 className="w-4 h-4 text-purple-400 group-hover:rotate-6 transition-transform duration-300" /> CONTROL & BONIFICADORES
         </h3>
@@ -242,6 +268,48 @@ export default function StatsDashboard({ altars, onSelectAlliance, selectedAllia
               Ningún altar registrado actualmente
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Col 4: Histogram of protection times (Wide) */}
+      <div className="lg:col-span-3 premium-glass-panel rounded-2xl p-5 relative overflow-hidden group">
+        <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-rose-500 to-rose-700 opacity-60"></div>
+        <h3 className="text-xs font-bold text-zinc-350 uppercase tracking-widest mb-3 flex items-center gap-2 font-mono border-b border-zinc-800/50 pb-2">
+          <ShieldAlert className="w-4 h-4 text-rose-400 group-hover:rotate-6 transition-transform duration-300" /> HISTOGRAMA DE RIESGO DE ESCUDO
+        </h3>
+        <div className="h-40 w-full mt-2">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={histogramData} margin={{ top: 5, right: 5, left: -25, bottom: 5 }}>
+              <XAxis 
+                dataKey="label" 
+                tick={{ fill: "#94a3b8", fontSize: 10, fontFamily: "monospace", fontWeight: 600 }} 
+                axisLine={false}
+                tickLine={false}
+              />
+              <YAxis 
+                allowDecimals={false} 
+                tick={{ fill: "#788fa6", fontSize: 9, fontFamily: "monospace" }}
+                axisLine={false}
+                tickLine={false}
+              />
+              <Tooltip
+                cursor={{ fill: "rgba(255, 255, 255, 0.04)" }}
+                contentStyle={{
+                  backgroundColor: "#020617",
+                  borderColor: "#1e293b",
+                  borderRadius: "12px",
+                  color: "#f8fafc",
+                  fontSize: "11px",
+                  fontFamily: "monospace"
+                }}
+              />
+              <Bar 
+                dataKey="count" 
+                radius={[5, 5, 0, 0]} 
+                fill="#f43f5e"
+              />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </div>
     </div>

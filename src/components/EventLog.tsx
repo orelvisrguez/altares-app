@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useI18n } from "../i18n/I18nContext";
 import { AltarEvent, AltarActionType } from "../types";
 import { 
   FileClock, 
@@ -78,6 +79,7 @@ const ACTION_CONFIGS: Record<AltarActionType, {
 };
 
 export default function EventLog({ events, onClearEvents }: EventLogProps) {
+  const { t } = useI18n();
   const [activeFilter, setActiveFilter] = useState<"ALL" | AltarActionType>("ALL");
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -109,10 +111,10 @@ export default function EventLog({ events, onClearEvents }: EventLogProps) {
           </div>
           <div>
             <h2 className="text-md font-bold text-white tracking-widest uppercase font-mono flex items-center gap-2">
-              📝 HISTORIAL DE ACTIVIDAD & AUDITORÍA
+              {t('activityLog.title')}
             </h2>
             <p className="text-xs text-zinc-400">
-              Registro cronológico automatizado de operaciones de control de fronteras sobre los altares.
+              {t('activityLog.desc')}
             </p>
           </div>
         </div>
@@ -126,7 +128,7 @@ export default function EventLog({ events, onClearEvents }: EventLogProps) {
             }}
             className="text-[10px] font-bold text-rose-400 hover:text-white bg-rose-950/25 hover:bg-rose-950/40 px-3 py-1.5 rounded-lg border border-rose-900/35 transition-all cursor-pointer flex items-center gap-1.5 font-mono uppercase shadow-sm"
           >
-            <Trash2 className="w-3 h-3 text-rose-400" /> Limpiar Registro
+            <Trash2 className="w-3 h-3 text-rose-400" /> {t('activityLog.clearLog')}
           </button>
         )}
       </div>
@@ -140,7 +142,7 @@ export default function EventLog({ events, onClearEvents }: EventLogProps) {
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Buscar en registro de auditoría..."
+            placeholder={t('activityLog.searchPlaceholder')}
             className="w-full bg-[#050609]/90 border border-zinc-800/80 rounded-xl pl-9 pr-3 py-2 text-xs font-mono text-zinc-200 placeholder-zinc-650 outline-none focus:border-purple-500/60 focus:ring-1 focus:ring-purple-500/20"
           />
         </div>
@@ -155,7 +157,7 @@ export default function EventLog({ events, onClearEvents }: EventLogProps) {
                 : "bg-[#050609]/40 text-zinc-400 border-zinc-850 hover:border-zinc-800 hover:text-zinc-200"
             }`}
           >
-            TODOS ({events.length})
+            {t('activityLog.allFilters')} ({events.length})
           </button>
           
           {(["CREATE", "UPDATE", "DELETE", "RENEW", "OCCUPANT_CHANGE", "IMPORT", "RESET"] as AltarActionType[]).map(type => {

@@ -83,6 +83,7 @@ export function formatRemainingTime(ms: number): string {
   if (ms <= 0) return "VULNERABLE / EXPIRADO";
 
   const totalSeconds = Math.floor(ms / 1000);
+  const seconds = totalSeconds % 60;
   const minutes = Math.floor((totalSeconds / 60) % 60);
   const hours = Math.floor((totalSeconds / 3600) % 24);
   const days = Math.floor(totalSeconds / 86400);
@@ -92,11 +93,13 @@ export function formatRemainingTime(ms: number): string {
     parts.push(`${days}d`);
   }
   
-  // Always pad hours and minutes to look uniform, e.g. 03h 05m
+  // Pad hours, minutes and seconds to look uniform
   const paddedHours = hours.toString().padStart(2, "0");
   const paddedMinutes = minutes.toString().padStart(2, "0");
+  const paddedSeconds = seconds.toString().padStart(2, "0");
   parts.push(`${paddedHours}h`);
   parts.push(`${paddedMinutes}m`);
+  parts.push(`${paddedSeconds}s`);
 
   return parts.join(" ");
 }
